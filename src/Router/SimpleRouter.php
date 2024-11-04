@@ -39,7 +39,7 @@ class SimpleRouter implements Router {
 	    // TODO
     }
 
-    public function serve(...$args): void {
+    public function serve(mixed ...$args): void {
 	    // TODO
     }
 }

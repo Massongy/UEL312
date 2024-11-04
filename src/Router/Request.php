@@ -7,7 +7,7 @@ use Symfony\Component\HttpFoundation\{Request as SymfonyRequest, InputBag};
 class Request extends SymfonyRequest {
     private array $context = [];
 
-    public function __construct(...$args) {
+    public function __construct(mixed ...$args) {
         parent::__construct($_GET, $_POST, [], $_COOKIE, $_FILES, $_SERVER);
 
         $content_type = $this->headers->get('CONTENT_TYPE', '');

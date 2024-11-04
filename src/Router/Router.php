@@ -4,7 +4,7 @@ namespace Framework312\Router;
 
 interface Router {
     public function register(string $path, string|object $class_or_view);
-    public function serve(array ...$args);
+    public function serve(mixed ...$args);
 }
 
 ?>
