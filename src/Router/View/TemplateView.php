@@ -1,21 +1,44 @@
 <?php
 
+// TemplateView.php
+
 namespace Framework312\Router\View;
 
 use Framework312\Router\Request;
+use Framework312\Template\Renderer;
 use Symfony\Component\HttpFoundation\Response;
 
-abstract class TemplateView
+class TemplateView extends BaseView
 {
-    // Méthode à implémenter dans les vues
-    abstract public function get(Request $request): array;
+    protected Renderer $renderer;
 
-    // Méthode de rendu minimale pour Twig
-    public function render(Request $request, $engine): Response
+    public function __construct(Renderer $renderer)
     {
-        $data = $this->get($request);
+        $this->renderer = $renderer;
+        $this->renderer->register(static::class);
+    }
+
+    public static function use_template(): bool
+    {
+        return true;
+    }
+
+    public function render(Request $request, ?Renderer $renderer = null): Response
+    {
+        if ($renderer !== null) {
+            $this->renderer = $renderer;
+            $this->renderer->register(static::class);
+        }
+        
+        $method = strtolower($request->getMethod());
+        $data = $this->$method($request);
+        
         $templateName = (new \ReflectionClass($this))->getShortName() . '/show.html.twig';
-        $html = $engine->render($templateName, $data);
-        return new Response($html);
+        
+        $content = $this->renderer->render($templateName, $data);
+        
+        return new Response($content);
     }
 }
+
+?>
