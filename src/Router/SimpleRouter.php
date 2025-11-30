@@ -6,42 +6,61 @@ use Framework312\Router\Exception as RouterException;
 use Framework312\Template\Renderer;
 use Symfony\Component\HttpFoundation\Response;
 
-class Route {
-    private const VIEW_CLASS = 'Framework312\Router\View\BaseView';
-    private const VIEW_USE_TEMPLATE_FUNC = 'use_template';
-    private const VIEW_RENDER_FUNC = 'render';
-
-    private string $view;
-
-    public function __construct(string|object $class_or_view) {
-        $reflect = new \ReflectionClass($class_or_view);
-        $view = $reflect->getName();
-        if (!$reflect->isSubclassOf(self::VIEW_CLASS)) {
-            throw new RouterException\InvalidViewImplementation($view);
-        }
-        $this->view = $view;
-    }
-
-    public function call(Request $request, ?Renderer $engine): Response {
-	    // TODO
-    }
-}
-
-class SimpleRouter implements Router {
+class SimpleRouter implements Router
+{
     private Renderer $engine;
+    private array $routes = [];
 
-    public function __construct(Renderer $engine) {
+    public function __construct(Renderer $engine)
+    {
         $this->engine = $engine;
-        // TODO
     }
 
-    public function register(string $path, string|object $class_or_view) {
-	    // TODO
+    /**
+     * Enregistre une route avec une classe de vue
+     */
+    public function register(string $path, string|object $classOrObject)
+    {
+        $this->routes[$path] = $classOrObject;
     }
 
-    public function serve(mixed ...$args): void {
-	    // TODO
+    /**
+     * Sert la requête HTTP actuelle
+     */
+    public function serve(mixed ...$args): void
+    {
+        $httpRequest = Request::createFromGlobals();
+        $requestedPath = $httpRequest->getPathInfo();
+
+        foreach ($this->routes as $routePattern => $viewClassOrObject) {
+
+            // Transforme les paramètres :param en regex nommée
+            $regexPattern = preg_replace('#:(\w+)#', '(?P<$1>[^/]+)', $routePattern);
+
+            if (preg_match("#^$regexPattern$#", $requestedPath, $matches)) {
+
+                // Injecte les paramètres capturés dans la requête
+                foreach ($matches as $key => $value) {
+                    if (is_string($key)) {
+                        $httpRequest->attributes->set($key, $value);
+                    }
+                }
+
+                // Instancie la vue en lui passant le Renderer
+                $viewInstance = is_string($viewClassOrObject)
+                    ? new $viewClassOrObject($this->engine)
+                    : $viewClassOrObject;
+
+                // Appelle render() sans repasser le renderer
+                $response = $viewInstance->render($httpRequest);
+
+                $response->send();
+                return;
+            }
+        }
+
+        // Aucun pattern ne correspond : 404
+        $response = new Response('404 Not Found', 404);
+        $response->send();
     }
 }
-
-?>
